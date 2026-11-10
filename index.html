@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalkulator Average Saham</title>
+<style>
+/* ===== Design tokens (sama dengan design/UI-SPEC.md) ===== */
+:root {
+  --color-primary: #2446A8;
+  --color-primary-hover: #1B3784;
+  --color-primary-soft: #E8EDFA;
+  --color-text: #1A1F2B;
+  --color-text-muted: #555E6E;
+  --color-bg: #F3F5F8;
+  --color-surface: #FFFFFF;
+  --color-border: #D3D9E2;
+  --color-border-input: #7A8496;
+  --color-success: #137A3A;
+  --color-success-soft: #E6F4EA;
+  --color-danger: #C0262D;
+  --color-danger-soft: #FDECEC;
+  --color-neutral: #555E6E;
+  --color-neutral-soft: #EEF0F4;
+  --color-disabled-bg: #EEF0F4;
+  --color-disabled-text: #6B7385;
+
+  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-display: 32px;
+  --fs-h1: 22px;
+  --fs-h2: 18px;
+  --fs-body: 16px;
+  --fs-small: 14px;
+  --fs-caption: 13px;
+  --fw-regular: 400;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --lh-tight: 1.25;
+  --lh-body: 1.5;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
+
+  --tap-min: 44px;
+  --content-max: 1040px;
+  --shadow-card: 0 1px 2px rgba(26, 31, 43, 0.06);
+
+  /* BARU v1.1 */
+  --stock-list-max: 232px;
+}
+
+/* ===== Dasar ===== */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-family); font-size: var(--fs-body); line-height: var(--lh-body);
+  color: var(--color-text); background: var(--color-bg);
+}
+.app { padding: var(--space-4) var(--space-4) var(--space-6); }
+.app * { min-width: 0; }
+.shell { max-width: var(--content-max); margin: 0 auto; }
+/* Angka hanya boleh patah di <wbr> (setelah titik ribuan) atau di spasi */
+.num { font-variant-numeric: tabular-nums; overflow-wrap: normal; word-break: normal; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+[hidden] { display: none !important; }
+svg { flex: none; }
+
+/* Judul */
+.app-header { display: flex; gap: var(--space-3); align-items: center; margin-bottom: var(--space-4); }
+.logo { width: 40px; height: 40px; flex: none; border-radius: 10px; background: var(--color-primary); display: grid; place-items: center; }
+.app-header h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); margin: 0; }
+.app-header p { margin: 2px 0 0; font-size: var(--fs-caption); color: var(--color-text-muted); line-height: 1.4; }
+
+/* Field */
+.field { margin-bottom: var(--space-4); }
+.field:last-child { margin-bottom: 0; }
+.label { display: block; font-size: var(--fs-small); font-weight: var(--fw-semibold); margin-bottom: 6px; }
+.input {
+  display: block; width: 100%; height: 48px; padding: 0 12px; margin: 0;
+  font: inherit; font-size: var(--fs-body); color: var(--color-text);
+  background: var(--color-surface); border: 1.5px solid var(--color-border-input); border-radius: var(--radius-sm);
+  -webkit-appearance: none; appearance: none;
+}
+.input::placeholder { color: var(--color-text-muted); opacity: 1; }
+.input:focus { border: 2px solid var(--color-primary); padding: 0 11.5px; }
+.input[aria-invalid="true"] { border: 2px solid var(--color-danger); padding: 0 11.5px; }
+.input:disabled { background: var(--color-disabled-bg); border-color: var(--color-border); color: var(--color-disabled-text); }
+.input:disabled::placeholder { color: var(--color-disabled-text); }
+.help { font-size: var(--fs-caption); color: var(--color-text-muted); margin-top: 6px; }
+.error-msg { display: flex; gap: 6px; align-items: flex-start; font-size: var(--fs-small); color: var(--color-danger); margin-top: 6px; line-height: 1.4; }
+.error-msg svg { margin-top: 1px; }
+.error-msg:empty { display: none; }
+.code-field { margin-bottom: var(--space-4); }
+.code-field .input { text-transform: uppercase; font-weight: var(--fw-semibold); letter-spacing: .5px; }
+.code-field .input:placeholder-shown { text-transform: none; font-weight: var(--fw-regular); letter-spacing: 0; }
+
+/* Kartu */
+.card {
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: var(--space-4); box-shadow: var(--shadow-card); margin-bottom: var(--space-4);
+}
+.card-title { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin: 0 0 var(--space-3); }
+.card-title h2 { font-size: var(--fs-h2); margin: 0; line-height: var(--lh-tight); overflow-wrap: anywhere; }
+.card-title .count { font-size: var(--fs-caption); color: var(--color-text-muted); white-space: nowrap; }
+.card.summary { background: var(--color-primary-soft); border-color: transparent; }
+
+/* Tombol */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--tap-min); padding: 0 16px; border-radius: var(--radius-sm);
+  font: inherit; font-size: var(--fs-body); font-weight: var(--fw-semibold); cursor: pointer; border: 0;
+}
+.btn-block { width: 100%; }
+.btn-primary { background: var(--color-primary); color: #fff; min-height: 48px; }
+.btn-primary:hover { background: var(--color-primary-hover); }
+.btn-primary:disabled { background: var(--color-disabled-bg); color: var(--color-disabled-text); cursor: not-allowed; }
+.btn-danger-outline { background: var(--color-surface); color: var(--color-danger); border: 1.5px solid var(--color-danger); }
+.btn-danger-outline:hover { background: var(--color-danger-soft); }
+.btn-danger-outline:disabled { color: var(--color-disabled-text); border-color: var(--color-border); background: var(--color-surface); cursor: not-allowed; }
+.btn-danger-ghost { background: transparent; color: var(--color-danger); padding: 0 8px; min-width: var(--tap-min); font-size: var(--fs-small); }
+.btn-danger-ghost:hover { background: var(--color-danger-soft); }
+.btn-neutral { background: var(--color-surface); color: var(--color-text); border: 1.5px solid var(--color-border-input); }
+.btn-neutral:hover { background: var(--color-bg); }
+.btn-danger { background: var(--color-danger); color: #fff; }
+.btn-danger:hover { background: #A81F26; }
+.btn-primary-outline { background: var(--color-surface); color: var(--color-primary); border: 1.5px solid var(--color-primary); padding: 0 12px; gap: 6px; white-space: nowrap; }
+.btn-primary-outline:hover { background: var(--color-primary-soft); }
+.btn-primary-outline:disabled { color: var(--color-disabled-text); border-color: var(--color-border); background: var(--color-disabled-bg); cursor: not-allowed; }
+
+/* Saham tersimpan (v1.1) */
+.card.stocks { padding-bottom: var(--space-3); }
+.stocks-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+.stocks-head h2 { font-size: var(--fs-h2); margin: 0; line-height: var(--lh-tight); }
+.stocks-head .count { display: block; font-size: var(--fs-caption); color: var(--color-text-muted); line-height: 1.3; }
+.stock-limit { display: flex; gap: 6px; align-items: flex-start; font-size: var(--fs-caption); color: var(--color-text-muted); line-height: 1.4; margin: 0 0 var(--space-3); }
+.stock-limit svg { margin-top: 1px; }
+.stock-empty { font-size: var(--fs-small); color: var(--color-text-muted); line-height: 1.45; margin: 0 0 var(--space-1); }
+.stock-list {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; position: relative;
+  max-height: var(--stock-list-max); overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.stock-row {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-2);
+  width: 100%; min-height: 56px; padding: var(--space-2) var(--space-3); margin: 0;
+  font: inherit; color: var(--color-text); text-align: left; cursor: pointer;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  -webkit-appearance: none; appearance: none;
+}
+.stock-row:hover { background: var(--color-bg); }
+.stock-row:focus-visible { outline-offset: -3px; }
+.stock-row[aria-current="true"] { background: var(--color-primary-soft); border-color: var(--color-primary); box-shadow: inset 3px 0 0 var(--color-primary); cursor: default; }
+.stock-info { display: block; }
+.stock-name { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--space-2); font-weight: var(--fw-bold); line-height: 1.35; }
+.stock-code { letter-spacing: .5px; overflow-wrap: anywhere; }
+.stock-code.is-none { font-weight: var(--fw-semibold); letter-spacing: 0; color: var(--color-text-muted); }
+.stock-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-primary); font-size: var(--fs-caption); font-weight: var(--fw-bold); white-space: nowrap; }
+.stock-sub { display: block; font-size: var(--fs-small); color: var(--color-text-muted); line-height: 1.4; margin-top: 2px; }
+.stock-chev { color: var(--color-text-muted); }
+
+/* Daftar transaksi */
+.tx-list { list-style: none; margin: 0; padding: 0; }
+.tx { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border-top: 1px solid var(--color-border); }
+.tx:first-child { border-top: 0; padding-top: 0; }
+.tx:last-child { padding-bottom: 0; }
+.tx-no { min-width: 28px; height: 28px; padding: 0 4px; border-radius: var(--radius-pill); background: var(--color-primary-soft); color: var(--color-primary); font-size: var(--fs-caption); font-weight: var(--fw-bold); display: grid; place-items: center; }
+.tx-main { font-weight: var(--fw-semibold); line-height: 1.35; }
+.tx-sub { font-size: var(--fs-small); color: var(--color-text-muted); line-height: 1.4; margin-top: 2px; }
+.empty { text-align: center; color: var(--color-text-muted); font-size: var(--fs-small); padding: var(--space-3) var(--space-2); line-height: 1.45; }
+.empty svg { display: block; margin: 0 auto var(--space-2); color: #7A8496; }
+
+/* Ringkasan */
+.avg-label { font-size: var(--fs-small); color: var(--color-text-muted); }
+.avg-value { font-size: var(--fs-display); font-weight: var(--fw-bold); line-height: 1.15; margin: 2px 0 var(--space-4); }
+.is-empty { color: var(--color-text-muted); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid rgba(36,70,168,.18); }
+.stat-label { font-size: var(--fs-caption); color: var(--color-text-muted); }
+.stat-value { font-size: var(--fs-body); font-weight: var(--fw-semibold); line-height: 1.3; }
+/* Angka panjang (v1.1, UI-SPEC 4.9) */
+.avg-value.is-long, .pl-nominal.is-long { font-size: var(--fs-h1); line-height: 1.25; }
+.stats.is-long { grid-template-columns: 1fr; gap: 6px; }
+.stats.is-long > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.stats.is-long .stat-label { flex: none; }
+.stats.is-long .stat-value { text-align: right; }
+@media (max-width: 339px) {
+  .stats:not(.is-long) { grid-template-columns: repeat(2, 1fr); }
+  .stats:not(.is-long) > div:last-child { grid-column: 1 / -1; }
+}
+
+/* Simulasi */
+.result-placeholder { background: var(--color-bg); border-radius: var(--radius-sm); padding: var(--space-4); text-align: center; color: var(--color-text-muted); font-size: var(--fs-small); margin-top: var(--space-4); }
+.result { border-radius: var(--radius-sm); padding: var(--space-4); margin-top: var(--space-4); border-left: 4px solid; }
+.result.profit { background: var(--color-success-soft); border-color: var(--color-success); }
+.result.loss { background: var(--color-danger-soft); border-color: var(--color-danger); }
+.result.even { background: var(--color-neutral-soft); border-color: var(--color-neutral); }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-pill); font-size: var(--fs-small); font-weight: var(--fw-bold); background: var(--color-surface); }
+.profit .badge, .profit .pl { color: var(--color-success); }
+.loss .badge, .loss .pl { color: var(--color-danger); }
+.even .badge, .even .pl { color: var(--color-neutral); }
+.pl-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: var(--space-2) 0 var(--space-3); }
+.pl-nominal { font-size: var(--fs-display); font-weight: var(--fw-bold); line-height: 1.15; }
+.pl-pct { font-size: var(--fs-h2); font-weight: var(--fw-bold); white-space: nowrap; }
+.detail { margin: 0; border-top: 1px solid rgba(26,31,43,.12); padding-top: var(--space-2); }
+.detail div { display: flex; justify-content: space-between; gap: var(--space-3); padding: 4px 0; font-size: var(--fs-small); }
+.detail dt { color: var(--color-text-muted); flex: none; max-width: 45%; }
+.detail dd { margin: 0; font-weight: var(--fw-semibold); text-align: right; }
+.note { display: flex; gap: 6px; align-items: center; font-size: var(--fs-caption); color: var(--color-text-muted); margin-top: var(--space-3); }
+
+/* Footer */
+.footer { text-align: center; margin-top: var(--space-5); }
+.save-status { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-caption); color: var(--color-text-muted); margin-bottom: var(--space-3); }
+.save-status.is-error { color: var(--color-danger); font-weight: var(--fw-semibold); }
+#add-btn { margin-top: var(--space-4); }
+.limit-msg { font-size: var(--fs-small); color: var(--color-text-muted); text-align: center; margin-top: var(--space-2); }
+
+/* Dialog konfirmasi */
+.overlay { position: fixed; inset: 0; z-index: 10; background: rgba(26,31,43,.5); display: grid; place-items: center; padding: 24px; }
+.dialog:focus { outline: none; }
+.dialog { background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-5); width: 100%; max-width: 340px; box-shadow: 0 16px 40px rgba(0,0,0,.25); }
+.dialog h2 { font-size: var(--fs-h2); line-height: var(--lh-tight); margin: 0 0 var(--space-2); }
+.dialog p { margin: 0 0 var(--space-5); font-size: var(--fs-body); line-height: 1.45; overflow-wrap: anywhere; }
+.dialog .actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); }
+
+/* Fokus keyboard */
+:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; }
+
+/* Desktop >= 900px */
+@media (min-width: 900px) {
+  .app { padding: var(--space-6) var(--space-5) var(--space-6); }
+  .code-field { max-width: 280px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); align-items: start; }
+  .col-right { position: sticky; top: 16px; }
+  .card { padding: var(--space-5); }
+  .card.stocks { padding-bottom: var(--space-5); }
+  .stock-list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-2); max-height: none; overflow: visible; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .row-2 > .field { margin-bottom: 0; }
+  .footer .btn { width: auto; padding: 0 24px; }
+  .footer .save-status { display: flex; justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Ikon (dipakai ulang lewat <use>) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-logo" viewBox="0 0 24 24"><rect x="4" y="12" width="4" height="8" rx="1" fill="#fff"/><rect x="10" y="7" width="4" height="13" rx="1" fill="#fff"/><rect x="16" y="3" width="4" height="17" rx="1" fill="#fff" opacity=".7"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-equal" viewBox="0 0 24 24"><path d="M6 9h12M6 15h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7v6M12 16.5v.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z" fill="currentColor"/><path d="M12 10v5M12 17.5v.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M8 9h8M8 12h8M8 15h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <div class="shell">
+
+    <!-- [A] Judul -->
+    <header class="app-header">
+      <div class="logo" aria-hidden="true"><svg width="24" height="24"><use href="#i-logo"/></svg></div>
+      <div>
+        <h1>Kalkulator Average Saham</h1>
+        <p>Hitung harga rata-rata dan simulasi untung/rugi dalam satu layar.</p>
+      </div>
+    </header>
+
+    <!-- [S] Saham tersimpan -->
+    <section class="card stocks" aria-labelledby="stocks-title">
+      <div class="stocks-head">
+        <div><h2 id="stocks-title">Saham tersimpan</h2><span class="count" id="stock-count" hidden></span></div>
+        <button class="btn btn-primary-outline" id="new-stock-btn" type="button">
+          <svg width="18" height="18" aria-hidden="true"><use href="#i-plus"/></svg>Saham baru
+        </button>
+      </div>
+      <p class="stock-limit" id="stock-limit" hidden>
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-info"/></svg>Maksimal 20 saham. Hapus salah satu untuk menambah saham baru.
+      </p>
+      <ul class="stock-list" id="stock-list" hidden></ul>
+      <p class="stock-empty" id="stock-empty">Belum ada saham tersimpan. Saham yang kamu hitung otomatis muncul di sini.</p>
+    </section>
+    <div class="sr-only" id="sr-status" aria-live="polite"></div>
+
+    <!-- [B] Kode saham -->
+    <div class="code-field">
+      <label class="label" for="code">Kode saham (opsional)</label>
+      <input class="input" id="code" type="text" maxlength="10" placeholder="contoh: BBRI"
+             autocapitalize="characters" autocomplete="off" spellcheck="false">
+    </div>
+
+    <main class="cols">
+      <div class="col-left">
+
+        <!-- [C] Tambah transaksi beli -->
+        <section class="card" aria-labelledby="buy-title">
+          <div class="card-title"><h2 id="buy-title">Tambah transaksi beli</h2></div>
+          <form id="buy-form" novalidate>
+            <div class="row-2">
+              <div class="field">
+                <label class="label" for="buy-price">Harga beli per lembar (Rp)</label>
+                <input class="input num" id="buy-price" type="text" inputmode="numeric" autocomplete="off"
+                       placeholder="contoh: 1.000" aria-describedby="buy-price-err">
+                <div class="error-msg" id="buy-price-err" role="alert"></div>
+              </div>
+              <div class="field">
+                <label class="label" for="buy-lot">Jumlah lot</label>
+                <input class="input num" id="buy-lot" type="text" inputmode="numeric" autocomplete="off"
+                       placeholder="contoh: 10" aria-describedby="buy-lot-help buy-lot-err">
+                <div class="help" id="buy-lot-help">1 lot = 100 lembar</div>
+                <div class="error-msg" id="buy-lot-err" role="alert"></div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block" id="add-btn" type="submit">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-plus"/></svg>Tambah
+            </button>
+            <div class="limit-msg" id="limit-msg" hidden>Maksimal 100 transaksi.</div>
+          </form>
+        </section>
+
+        <!-- [D] Daftar transaksi -->
+        <section class="card" aria-labelledby="list-title">
+          <div class="card-title">
+            <h2 id="list-title">Daftar transaksi</h2>
+            <span class="count" id="tx-count" hidden></span>
+          </div>
+          <ol class="tx-list" id="tx-list" hidden></ol>
+          <div class="empty" id="tx-empty">
+            <svg width="32" height="32" aria-hidden="true"><use href="#i-list"/></svg>
+            Belum ada transaksi. Tambahkan transaksi beli pertamamu di atas.
+          </div>
+        </section>
+      </div>
+
+      <div class="col-right">
+
+        <!-- [E] Ringkasan -->
+        <section class="card summary" aria-labelledby="sum-title">
+          <div class="card-title"><h2 id="sum-title">Ringkasan</h2></div>
+          <div class="avg-label">Harga rata-rata per lembar</div>
+          <div class="avg-value num" id="sum-avg" aria-live="polite">-</div>
+          <div class="stats">
+            <div><div class="stat-label">Total lot</div><div class="stat-value num" id="sum-lot">-</div></div>
+            <div><div class="stat-label">Total lembar</div><div class="stat-value num" id="sum-shares">-</div></div>
+            <div><div class="stat-label">Total modal</div><div class="stat-value num" id="sum-cost">-</div></div>
+          </div>
+        </section>
+
+        <!-- [F] Simulasi jual -->
+        <section class="card" aria-labelledby="sim-title">
+          <div class="card-title"><h2 id="sim-title">Simulasi jual</h2></div>
+          <div class="row-2">
+            <div class="field">
+              <label class="label" for="sell-price">Harga jual per lembar (Rp)</label>
+              <input class="input num" id="sell-price" type="text" inputmode="numeric" autocomplete="off"
+                     aria-describedby="sell-price-err">
+              <div class="error-msg" id="sell-price-err"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="sell-lot">Lot dijual (kosongkan = semua)</label>
+              <input class="input num" id="sell-lot" type="text" inputmode="numeric" autocomplete="off"
+                     aria-describedby="sell-lot-help sell-lot-err">
+              <div class="help num" id="sell-lot-help" hidden></div>
+              <div class="error-msg" id="sell-lot-err"></div>
+            </div>
+          </div>
+          <div id="sim-result" aria-live="polite"></div>
+          <div class="note">
+            <svg width="16" height="16" aria-hidden="true"><use href="#i-info"/></svg>Belum termasuk fee broker dan pajak.
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- [G] Footer -->
+    <footer class="footer">
+      <div class="save-status" id="save-status">
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg><span>Data tersimpan otomatis di browser ini.</span>
+      </div>
+      <div>
+        <button class="btn btn-danger-outline btn-block" id="del-btn" type="button">
+          <svg width="18" height="18" aria-hidden="true"><use href="#i-trash"/></svg>Hapus saham ini
+        </button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- Dialog konfirmasi hapus saham (buatan sendiri, keputusan Owner) -->
+<div class="overlay" id="del-overlay" hidden>
+  <div class="dialog" id="del-dialog" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="del-title" aria-describedby="del-desc">
+    <h2 id="del-title">Hapus saham ini?</h2>
+    <p id="del-desc"></p>
+    <div class="actions">
+      <button class="btn btn-neutral" id="del-cancel" type="button">Batal</button>
+      <button class="btn btn-danger" id="del-ok" type="button">Ya, hapus</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===== Konstanta =====
+  var KEY_V2 = 'kalkulator-average-saham:v2';
+  var KEY_V1 = 'kalkulator-average-saham:v1'; // hanya dibaca sekali untuk migrasi
+  var MAX_TX = 100;
+  var MAX_STOCKS = 20;
+  var CODE_MAX = 10;
+  var SERATUS = 100n; // 1 lot = 100 lembar; juga pengali 2 desimal
+
+  // ===== Angka =====
+  // Nilai dari 4 kolom angka disimpan sebagai teks digit ("1500") dan dihitung
+  // dengan BigInt, supaya tepat untuk angka sepanjang apa pun (PRD 13.12).
+  function onlyDigits(s) { return String(s).replace(/[^0-9]/g, ''); }
+
+  // Buang nol di depan; jika semuanya nol, sisakan satu "0"
+  function stripZeros(d) {
+    var s = d.replace(/^0+/, '');
+    return s === '' && d !== '' ? '0' : s;
+  }
+
+  // Sisipkan titik setiap 3 digit dari kanan: "1500" -> "1.500"
+  function group(d) {
+    if (d.length <= 3) return d;
+    var first = d.length % 3 || 3;
+    var parts = [d.slice(0, first)];
+    for (var i = first; i < d.length; i += 3) parts.push(d.slice(i, i + 3));
+    return parts.join('.');
+  }
+
+  function fmtInt(n) { return group(n.toString()); }      // BigInt >= 0
+  function fmtRp(n) { return 'Rp ' + fmtInt(n); }
+  // n = nilai x 100 yang sudah dibulatkan (BigInt >= 0) -> "1.066,67"
+  function fmt2(n) {
+    var s = n.toString();
+    while (s.length < 3) s = '0' + s;
+    return group(s.slice(0, -2)) + ',' + s.slice(-2);
+  }
+  function abs(n) { return n < 0n ? -n : n; }
+
+  // Bulatkan pecahan p/q (q > 0) ke bilangan bulat, 0,5 menjauhi nol
+  function roundDiv(p, q) {
+    var a = abs(p);
+    var r = a / q;
+    if ((a % q) * 2n >= q) r += 1n;
+    return p < 0n ? -r : r;
+  }
+
+  // ===== Perhitungan (PRD 6.1 + 13.12), semuanya eksak =====
+  function summarize(txs) {
+    var totalLot = 0n, sigma = 0n; // sigma = jumlah (harga x lot)
+    txs.forEach(function (t) {
+      var lot = BigInt(t.lot);
+      totalLot += lot;
+      sigma += BigInt(t.price) * lot;
+    });
+    var has = totalLot > 0n;
+    return {
+      has: has,
+      totalLot: totalLot,
+      sigma: sigma,
+      shares: totalLot * SERATUS,
+      cost: sigma * SERATUS,
+      avgText: has ? 'Rp ' + fmt2(roundDiv(sigma * SERATUS, totalLot)) : ''
+    };
+  }
+
+  function simulate(sum, sellPrice, sellLot) {
+    var soldShares = sellLot * SERATUS;
+    var diff = sellPrice * sum.totalLot - sum.sigma;      // (HJ - A) x TL
+    return {
+      lot: sellLot,
+      shares: soldShares,
+      sellValue: sellPrice * soldShares,
+      costSold: roundDiv(sum.sigma * soldShares, sum.totalLot),
+      profit: roundDiv(soldShares * diff, sum.totalLot),
+      pct100: roundDiv(10000n * diff, sum.sigma)          // persen x 100
+    };
+  }
+
+  // ===== Validasi (PRD 6.2); masukan = teks digit tanpa titik =====
+  function validateBuyPrice(d) {
+    if (d === '') return { error: 'Harga beli wajib diisi.' };
+    if (d === '0') return { error: 'Harga minimal 1.' };
+    return { value: d };
+  }
+  function validateBuyLot(d) {
+    if (d === '') return { error: 'Jumlah lot wajib diisi.' };
+    if (d === '0') return { error: 'Jumlah lot minimal 1.' };
+    return { value: d };
+  }
+  function validateSellPrice(d) {
+    if (d === '') return { empty: true };
+    if (d === '0') return { error: 'Harga jual minimal 1.' };
+    return { value: BigInt(d) };
+  }
+  function validateSellLot(d, totalLot) {
+    if (d === '') return { value: totalLot };             // kosong = semua lot
+    if (d === '0') return { error: 'Jumlah lot minimal 1.' };
+    var v = BigInt(d);
+    if (v > totalLot) return { error: 'Maksimal ' + fmtInt(totalLot) + ' lot (sesuai total kepemilikan).' };
+    return { value: v };
+  }
+
+  // ===== State =====
+  // stocks = saham tersimpan (urutan dibuat). cur = saham yang sedang dibuka;
+  // jika cur kosong ("lembar kosong") ia tidak ada di dalam stocks.
+  var stocks = [];
+  var cur = null;
+  var storageOk = true;
+  var idSeq = 0;
+
+  function newId() {
+    var id;
+    do {
+      idSeq += 1;
+      id = 's' + Date.now().toString(36) + '-' + idSeq;
+    } while (findStock(id));
+    return id;
+  }
+  function blankStock() { return { id: newId(), code: '', txs: [], sellPrice: '', sellLot: '' }; }
+  function findStock(id) {
+    for (var i = 0; i < stocks.length; i++) if (stocks[i].id === id) return stocks[i];
+    return null;
+  }
+  function isEmptyStock(s) {
+    return s.code === '' && s.txs.length === 0 && s.sellPrice === '' && s.sellLot === '';
+  }
+
+  // Simpan otomatis: lembar yang terisi masuk daftar (paling bawah),
+  // saham yang dikosongkan keluar dari daftar. Hasil true = baris baru masuk.
+  function syncCurrent() {
+    var i = stocks.indexOf(cur);
+    if (isEmptyStock(cur)) {
+      if (i >= 0) stocks.splice(i, 1);
+      return false;
+    }
+    if (i < 0 && stocks.length < MAX_STOCKS) { stocks.push(cur); return true; }
+    return false; // sudah 20 saham: lembar kosong tidak ikut masuk daftar (teks batas tampil)
+  }
+
+  // ===== Penyimpanan =====
+  // Nilai yang diterima saat memuat: teks digit, atau angka JSON bulat aman (PRD 13.6)
+  function readDigits(v, min) {
+    if (typeof v === 'string') return /^(0|[1-9]\d*)$/.test(v) && !(min === 1 && v === '0') ? v : null;
+    if (typeof v === 'number' && Number.isSafeInteger(v) && v >= min) return String(v);
+    return null;
+  }
+  function readTxs(list) {
+    var out = [];
+    list.forEach(function (t) {
+      if (!t || typeof t !== 'object') return;
+      var price = readDigits(t.price, 1), lot = readDigits(t.lot, 1);
+      if (price !== null && lot !== null && out.length < MAX_TX) out.push({ price: price, lot: lot });
+    });
+    return out;
+  }
+  function readCode(v) { return typeof v === 'string' ? v.toUpperCase().slice(0, CODE_MAX).trim() : ''; }
+
+  function parseV2(raw) {
+    var d;
+    try { d = JSON.parse(raw); } catch (e) { return; }   // data rusak diabaikan diam-diam (AC-32)
+    if (!d || typeof d !== 'object' || !Array.isArray(d.stocks)) return;
+    d.stocks.forEach(function (x) {
+      if (stocks.length >= MAX_STOCKS) return;
+      if (!x || typeof x !== 'object' || !Array.isArray(x.txs)) return; // entri rusak dilewati
+      var s = {
+        id: typeof x.id === 'string' && x.id !== '' && !findStock(x.id) ? x.id : newId(),
+        code: readCode(x.code),
+        txs: readTxs(x.txs),
+        sellPrice: readDigits(x.sellPrice, 0) || '',
+        sellLot: readDigits(x.sellLot, 0) || ''
+      };
+      if (!isEmptyStock(s)) stocks.push(s);
+    });
+    if (typeof d.activeId === 'string') cur = findStock(d.activeId);
+    // Sudah 20 saham: lembar kosong tidak bisa dibuka (sama seperti tombol "Saham baru" nonaktif)
+    if (!cur && stocks.length >= MAX_STOCKS) cur = stocks[0];
+  }
+
+  // Isian simulasi v1 berupa teks bebas: spasi dan titik ribuan dibuang (aturan v1.0)
+  function readV1Sell(v) {
+    if (typeof v !== 'string') return '';
+    var s = v.replace(/\s+/g, '');
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    return /^\d+$/.test(s) ? stripZeros(s) : '';
+  }
+  function parseV1(raw) {
+    var d;
+    try { d = JSON.parse(raw); } catch (e) { return; }
+    if (!d || typeof d !== 'object') return;
+    var s = blankStock();
+    s.code = readCode(d.code);
+    s.txs = Array.isArray(d.txs) ? readTxs(d.txs) : [];
+    s.sellPrice = readV1Sell(d.sellPrice);
+    s.sellLot = readV1Sell(d.sellLot);
+    if (!isEmptyStock(s)) { stocks.push(s); cur = s; }
+  }
+
+  function write() {
+    var data = {
+      version: 2,
+      activeId: stocks.indexOf(cur) >= 0 ? cur.id : null,
+      stocks: stocks.map(function (s) {
+        return { id: s.id, code: s.code, txs: s.txs, sellPrice: s.sellPrice || null, sellLot: s.sellLot || null };
+      })
+    };
+    try {
+      window.localStorage.setItem(KEY_V2, JSON.stringify(data));
+      storageOk = true;
+    } catch (e) {
+      storageOk = false; // diblokir atau penuh: hitungan tetap jalan (AC-33, AC-96)
+    }
+    return storageOk;
+  }
+  function save() { write(); renderSaveStatus(); }
+
+  function load() {
+    var v2, v1;
+    try {
+      v2 = window.localStorage.getItem(KEY_V2);
+      if (v2 === null) v1 = window.localStorage.getItem(KEY_V1);
+    } catch (e) {
+      storageOk = false;
+      return;
+    }
+    if (v2 !== null) {
+      parseV2(v2);
+    } else if (v1 != null) {
+      // Migrasi dari v1.0: key lama dihapus hanya jika v2 berhasil ditulis
+      parseV1(v1);
+      if (!cur) cur = blankStock();
+      if (write()) {
+        try { window.localStorage.removeItem(KEY_V1); } catch (e) { /* abaikan */ }
+      }
+    } else {
+      // Belum ada data: uji apakah browser mengizinkan penyimpanan (AC-33)
+      try {
+        window.localStorage.setItem(KEY_V2 + ':uji', '1');
+        window.localStorage.removeItem(KEY_V2 + ':uji');
+      } catch (e) {
+        storageOk = false;
+      }
+    }
+  }
+
+  // ===== Elemen =====
+  function $(id) { return document.getElementById(id); }
+  var el = {
+    stockCount: $('stock-count'), stockLimit: $('stock-limit'), stockList: $('stock-list'), stockEmpty: $('stock-empty'),
+    newStockBtn: $('new-stock-btn'), srStatus: $('sr-status'),
+    code: $('code'),
+    form: $('buy-form'),
+    buyPrice: $('buy-price'), buyPriceErr: $('buy-price-err'),
+    buyLot: $('buy-lot'), buyLotErr: $('buy-lot-err'),
+    addBtn: $('add-btn'), limitMsg: $('limit-msg'),
+    txCount: $('tx-count'), txList: $('tx-list'), txEmpty: $('tx-empty'),
+    sumTitle: $('sum-title'), sumAvg: $('sum-avg'), sumLot: $('sum-lot'), sumShares: $('sum-shares'), sumCost: $('sum-cost'),
+    sellPrice: $('sell-price'), sellPriceErr: $('sell-price-err'),
+    sellLot: $('sell-lot'), sellLotErr: $('sell-lot-err'), sellLotHelp: $('sell-lot-help'),
+    simResult: $('sim-result'),
+    saveStatus: $('save-status'),
+    delBtn: $('del-btn'), overlay: $('del-overlay'), delDesc: $('del-desc'), delCancel: $('del-cancel'), delOk: $('del-ok')
+  };
+
+  // ===== Helper DOM =====
+  function h(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  // Tulis teks angka dengan <wbr> setelah setiap titik ribuan agar baris
+  // hanya patah di batas kelompok digit. textContent tetap sama.
+  function setNum(node, text) {
+    node.textContent = '';
+    String(text).split('.').forEach(function (part, i) {
+      if (i > 0) { node.appendChild(document.createTextNode('.')); node.appendChild(document.createElement('wbr')); }
+      node.appendChild(document.createTextNode(part));
+    });
+    return node;
+  }
+  function numEl(tag, cls, text) { return setNum(h(tag, cls), text); }
+
+  function icon(id, size) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var s = document.createElementNS(ns, 'svg');
+    s.setAttribute('width', size); s.setAttribute('height', size);
+    s.setAttribute('aria-hidden', 'true');
+    var u = document.createElementNS(ns, 'use');
+    u.setAttribute('href', '#' + id);
+    s.appendChild(u);
+    return s;
+  }
+
+  function setError(input, errBox, msg) {
+    errBox.textContent = '';
+    if (msg) {
+      errBox.appendChild(icon('i-alert', 16));
+      errBox.appendChild(numEl('span', 'num', msg));
+      input.setAttribute('aria-invalid', 'true');
+    } else {
+      input.removeAttribute('aria-invalid');
+    }
+  }
+
+  function announce(text) { el.srStatus.textContent = text; }
+
+  // ===== Kolom angka: titik ribuan otomatis + hanya digit (PRD 13.3, 13.4) =====
+  // Posisi kursor diukur dengan "jumlah digit di kiri kursor".
+  function caretIndex(text, digitsLeft) {
+    if (digitsLeft <= 0) return 0;
+    var seen = 0;
+    for (var i = 0; i < text.length; i++) {
+      if (text.charAt(i) !== '.') {
+        seen += 1;
+        if (seen === digitsLeft) return i + 1;
+      }
+    }
+    return text.length;
+  }
+
+  function numField(input, onChange) {
+    var field = { digits: '' };
+    var dragFromSelf = false;
+
+    // Pasang deretan digit baru + kursor; onChange hanya dipanggil jika nilainya berubah
+    function commit(digits, digitsLeft) {
+      var clean = stripZeros(digits);
+      digitsLeft = Math.max(0, Math.min(clean.length, digitsLeft - (digits.length - clean.length)));
+      var text = group(clean);
+      if (input.value !== text) input.value = text;
+      if (document.activeElement === input) {
+        var pos = caretIndex(text, digitsLeft);
+        try { input.setSelectionRange(pos, pos); } catch (e) { /* abaikan */ }
+      }
+      if (clean !== field.digits) {
+        field.digits = clean;
+        onChange();
+      }
+    }
+
+    // Sisipkan teks di posisi kursor / menggantikan seleksi. Koma = desimal:
+    // hanya bagian sebelum koma pertama yang dipakai, lalu hanya digitnya.
+    function insert(text) {
+      var add = onlyDigits(String(text).split(',')[0]);
+      if (add === '') return; // tidak ada digit: kolom tidak berubah, tanpa reaksi apa pun
+      var v = input.value;
+      var start = input.selectionStart, end = input.selectionEnd;
+      if (start == null || end == null) { start = end = v.length; }
+      var left = onlyDigits(v.slice(0, start));
+      commit(left + add + onlyDigits(v.slice(end)), left.length + add.length);
+    }
+
+    // Ketikan biasa ditangani sebelum masuk ke kolom, jadi karakter yang diblok tidak sempat tampil
+    input.addEventListener('beforeinput', function (e) {
+      if (e.isComposing || !e.cancelable) return;
+      if (e.inputType === 'insertText' && typeof e.data === 'string') {
+        e.preventDefault();
+        insert(e.data);
+      }
+    });
+    input.addEventListener('paste', function (e) {
+      if (!e.clipboardData) return;
+      e.preventDefault();
+      insert(e.clipboardData.getData('text'));
+    });
+    input.addEventListener('dragstart', function () { dragFromSelf = true; });
+    input.addEventListener('dragend', function () { dragFromSelf = false; });
+    input.addEventListener('drop', function (e) {
+      if (!e.dataTransfer) return;
+      e.preventDefault();
+      if (dragFromSelf || input.disabled) return;
+      input.focus();
+      insert(e.dataTransfer.getData('text'));
+    });
+
+    // Semua perubahan lain (hapus, potong, IME, isi otomatis, dikte): rapikan setelah terjadi.
+    // Selama keyboard masih menyusun teks (komposisi IME), isi kolom tidak disentuh;
+    // dirapikan sekali saat komposisi selesai. Merapikan dua kali tidak mengubah hasil,
+    // jadi aman untuk urutan event Chrome (input lalu compositionend) maupun Safari (sebaliknya).
+    var composing = false;
+    input.addEventListener('compositionstart', function () { composing = true; });
+    input.addEventListener('compositionend', function () { composing = false; tidy(''); });
+    input.addEventListener('input', function (e) {
+      if (composing || e.isComposing) return;
+      tidy(e.inputType || '');
+    });
+    function tidy(type) {
+      var raw = input.value;
+      var pos = input.selectionStart == null ? raw.length : input.selectionStart;
+      var left = onlyDigits(raw.slice(0, pos)).length;
+      var digits = onlyDigits(raw);
+      // Yang terhapus ternyata hanya titik: hapus digit di seberang titik itu
+      if (digits === field.digits && raw !== group(digits)) {
+        if (/^delete.*Backward$/.test(type) && left > 0) {
+          digits = digits.slice(0, left - 1) + digits.slice(left);
+          left -= 1;
+        } else if (/^delete.*Forward$/.test(type) && left < digits.length) {
+          digits = digits.slice(0, left) + digits.slice(left + 1);
+        }
+      }
+      commit(digits, left);
+    }
+
+    field.set = function (digits) {
+      field.digits = digits;
+      input.value = group(digits);
+    };
+    return field;
+  }
+
+  // ===== Render =====
+  function txLabel(t) { return 'Rp ' + group(t.price) + ' × ' + group(t.lot) + ' lot'; }
+
+  function renderStocks() {
+    var active = document.activeElement;
+    var focusedId = active && active.classList.contains('stock-row') ? active.getAttribute('data-id') : null;
+    var scrollTop = el.stockList.scrollTop;
+
+    el.stockList.textContent = '';
+    stocks.forEach(function (s) {
+      var isCur = s === cur;
+      var sum = summarize(s.txs);
+      var btn = h('button', 'stock-row');
+      btn.type = 'button';
+      btn.setAttribute('data-id', s.id);
+      if (isCur) btn.setAttribute('aria-current', 'true');
+      btn.setAttribute('aria-label', 'Buka ' + (s.code || 'saham tanpa kode') +
+        (sum.has ? ', rata-rata ' + sum.avgText + ', ' + fmtInt(sum.totalLot) + ' lot' : ', belum ada transaksi') +
+        (isCur ? ', sedang dibuka' : ''));
+
+      var info = h('span', 'stock-info');
+      var name = h('span', 'stock-name');
+      name.appendChild(h('span', s.code ? 'stock-code' : 'stock-code is-none', s.code || 'Tanpa kode'));
+      if (isCur) {
+        var badge = h('span', 'stock-badge');
+        badge.appendChild(icon('i-check', 14));
+        badge.appendChild(document.createTextNode('Sedang dibuka'));
+        name.appendChild(badge);
+      }
+      info.appendChild(name);
+      info.appendChild(sum.has
+        ? numEl('span', 'stock-sub num', 'Rata-rata ' + sum.avgText + ' · ' + fmtInt(sum.totalLot) + ' lot')
+        : h('span', 'stock-sub', 'Belum ada transaksi'));
+      btn.appendChild(info);
+      if (!isCur) {
+        var chev = icon('i-chev', 18);
+        chev.setAttribute('class', 'stock-chev');
+        btn.appendChild(chev);
+      }
+      var li = h('li');
+      li.appendChild(btn);
+      el.stockList.appendChild(li);
+    });
+
+    var n = stocks.length, full = n >= MAX_STOCKS;
+    el.stockList.hidden = n === 0;
+    el.stockEmpty.hidden = n > 0;
+    el.stockCount.hidden = n === 0;
+    el.stockCount.textContent = n > 0 ? n + ' dari ' + MAX_STOCKS + ' saham' : '';
+    el.stockLimit.hidden = !full;
+    el.newStockBtn.disabled = full;
+    if (full) el.newStockBtn.setAttribute('aria-describedby', 'stock-limit');
+    else el.newStockBtn.removeAttribute('aria-describedby');
+
+    // Render ulang tidak boleh memindahkan fokus maupun posisi gulir daftar
+    el.stockList.scrollTop = scrollTop;
+    if (focusedId) focusStockRow(focusedId);
+  }
+
+  function stockRow(id) {
+    var rows = el.stockList.querySelectorAll('.stock-row');
+    for (var i = 0; i < rows.length; i++) if (rows[i].getAttribute('data-id') === id) return rows[i];
+    return null;
+  }
+  function focusStockRow(id) {
+    var row = stockRow(id);
+    if (row) row.focus({ preventScroll: true });
+  }
+  // Gulir wadah daftar saja (bukan halaman) sampai baris yang sedang dibuka terlihat
+  function showCurrentRow() {
+    var row = stockRow(cur.id);
+    if (!row) return;
+    var list = el.stockList, li = row.parentNode;
+    var top = li.offsetTop, bottom = top + li.offsetHeight;
+    if (top < list.scrollTop) list.scrollTop = top;
+    else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
+  }
+
+  function renderList() {
+    var txs = cur.txs;
+    el.txList.textContent = '';
+    txs.forEach(function (t, i) {
+      var price = BigInt(t.price), lot = BigInt(t.lot);
+      var li = h('li', 'tx');
+      li.appendChild(h('span', 'tx-no', String(i + 1)));
+      var info = h('div');
+      info.appendChild(numEl('div', 'tx-main num', txLabel(t)));
+      info.appendChild(numEl('div', 'tx-sub num',
+        fmtInt(lot * SERATUS) + ' lembar · Nilai ' + fmtRp(price * lot * SERATUS)));
+      li.appendChild(info);
+      var btn = h('button', 'btn btn-danger-ghost');
+      btn.type = 'button';
+      btn.setAttribute('data-index', String(i));
+      btn.setAttribute('aria-label', 'Hapus transaksi ' + (i + 1) + ', ' + txLabel(t));
+      btn.appendChild(icon('i-trash', 18));
+      btn.appendChild(document.createTextNode('Hapus'));
+      li.appendChild(btn);
+      el.txList.appendChild(li);
+    });
+    var has = txs.length > 0;
+    el.txList.hidden = !has;
+    el.txEmpty.hidden = has;
+    el.txCount.hidden = !has;
+    el.txCount.textContent = has ? txs.length + ' transaksi' : '';
+
+    var full = txs.length >= MAX_TX;
+    el.addBtn.disabled = full;
+    el.limitMsg.hidden = !full;
+  }
+
+  function setValue(node, text) {
+    setNum(node, text);
+    node.classList.toggle('is-empty', text === '-');
+  }
+
+  function renderSummary(sum) {
+    el.sumTitle.textContent = cur.code ? 'Ringkasan ' + cur.code : 'Ringkasan';
+    var avg = '-', lot = '-', shares = '-', cost = '-';
+    if (sum.has) {
+      avg = sum.avgText;
+      lot = fmtInt(sum.totalLot);
+      shares = fmtInt(sum.shares);
+      cost = fmtRp(sum.cost);
+    }
+    setValue(el.sumAvg, avg);
+    setValue(el.sumLot, lot);
+    setValue(el.sumShares, shares);
+    setValue(el.sumCost, cost);
+    // Angka panjang: huruf lebih kecil / susunan satu kolom (UI-SPEC 4.9)
+    el.sumAvg.classList.toggle('is-long', avg.length > 16);
+    el.sumLot.parentNode.parentNode.classList.toggle('is-long', lot.length > 14 || shares.length > 14 || cost.length > 14);
+  }
+
+  function placeholder(text) {
+    el.simResult.textContent = '';
+    el.simResult.appendChild(h('div', 'result-placeholder', text));
+  }
+
+  // Impas selalu "0,00%"; Untung/Rugi yang dibulatkan jadi 0,00 tampil "+< 0,01%" / "-< 0,01%"
+  function formatPct(kind, sign, pct100) {
+    if (kind === 'even') return '0,00%';
+    if (pct100 === 0n) return sign + '< 0,01%';
+    return sign + fmt2(abs(pct100)) + '%';
+  }
+
+  function renderSimulation(sum) {
+    var has = sum.has;
+    el.sellPrice.disabled = !has;
+    el.sellLot.disabled = !has;
+    el.sellPrice.placeholder = has ? 'contoh: 1.200' : '';
+    el.sellLot.placeholder = has ? 'semua (' + fmtInt(sum.totalLot) + ' lot)' : '';
+    el.sellLotHelp.hidden = !has;
+    setNum(el.sellLotHelp, has ? 'Kamu punya ' + fmtInt(sum.totalLot) + ' lot.' : '');
+
+    if (!has) {
+      setError(el.sellPrice, el.sellPriceErr, '');
+      setError(el.sellLot, el.sellLotErr, '');
+      placeholder('Tambahkan transaksi beli dulu untuk simulasi jual.');
+      return;
+    }
+
+    var vp = validateSellPrice(cur.sellPrice);
+    var vl = validateSellLot(cur.sellLot, sum.totalLot);
+    setError(el.sellPrice, el.sellPriceErr, vp.error || '');
+    setError(el.sellLot, el.sellLotErr, vl.error || '');
+
+    if (vp.error || vl.error) { placeholder('Perbaiki isian di atas untuk melihat hasil.'); return; }
+    if (vp.empty) { placeholder('Isi harga jual untuk melihat untung/rugi.'); return; }
+
+    var r = simulate(sum, vp.value, vl.value);
+    var kind, label, iconId, sign;
+    if (r.profit > 0n) { kind = 'profit'; label = 'Untung'; iconId = 'i-up'; sign = '+'; }
+    else if (r.profit < 0n) { kind = 'loss'; label = 'Rugi'; iconId = 'i-down'; sign = '-'; }
+    else { kind = 'even'; label = 'Impas'; iconId = 'i-equal'; sign = ''; }
+
+    var box = h('div', 'result ' + kind);
+    var badge = h('span', 'badge');
+    badge.appendChild(icon(iconId, 16));
+    badge.appendChild(document.createTextNode(label));
+    box.appendChild(badge);
+
+    var nominal = sign + fmtRp(abs(r.profit));
+    var row = h('div', 'pl-row pl');
+    row.appendChild(numEl('span', 'pl-nominal num' + (nominal.length > 16 ? ' is-long' : ''), nominal));
+    row.appendChild(numEl('span', 'pl-pct num', formatPct(kind, sign, r.pct100)));
+    box.appendChild(row);
+
+    var dl = h('dl', 'detail');
+    [
+      ['Lot dijual', fmtInt(r.lot) + ' lot (' + fmtInt(r.shares) + ' lembar)'],
+      ['Nilai jual', fmtRp(r.sellValue)],
+      ['Modal untuk lot dijual', fmtRp(r.costSold)]
+    ].forEach(function (pair) {
+      var d = h('div');
+      d.appendChild(h('dt', null, pair[0]));
+      d.appendChild(numEl('dd', 'num', pair[1]));
+      dl.appendChild(d);
+    });
+    box.appendChild(dl);
+
+    el.simResult.textContent = '';
+    el.simResult.appendChild(box);
+  }
+
+  function renderSaveStatus() {
+    var s = el.saveStatus;
+    s.textContent = '';
+    s.classList.toggle('is-error', !storageOk);
+    s.appendChild(icon(storageOk ? 'i-check' : 'i-warn', 16));
+    s.appendChild(h('span', null, storageOk
+      ? 'Data tersimpan otomatis di browser ini.'
+      : 'Data tidak bisa disimpan di browser ini.'));
+  }
+
+  function renderAll() {
+    var sum = summarize(cur.txs);
+    renderStocks();
+    renderList();
+    renderSummary(sum);
+    renderSimulation(sum);
+    el.delBtn.disabled = isEmptyStock(cur);
+  }
+
+  // Dipanggil setiap kali data saham yang sedang dibuka berubah
+  function changed() {
+    var added = syncCurrent();
+    renderAll();
+    if (added) showCurrentRow();
+    save();
+  }
+
+  // ===== Kolom angka =====
+  var buyPrice = numField(el.buyPrice, function () { setError(el.buyPrice, el.buyPriceErr, ''); });
+  var buyLot = numField(el.buyLot, function () { setError(el.buyLot, el.buyLotErr, ''); });
+  var sellPrice = numField(el.sellPrice, function () { cur.sellPrice = sellPrice.digits; changed(); });
+  var sellLot = numField(el.sellLot, function () { cur.sellLot = sellLot.digits; changed(); });
+
+  function clearBuyForm() {
+    buyPrice.set('');
+    buyLot.set('');
+    setError(el.buyPrice, el.buyPriceErr, '');
+    setError(el.buyLot, el.buyLotErr, '');
+  }
+  // Tampilkan saham yang sedang dibuka di kolom-kolomnya
+  function showCurrent() {
+    el.code.value = cur.code;
+    sellPrice.set(cur.sellPrice);
+    sellLot.set(cur.sellLot);
+    renderAll();
+    showCurrentRow();
+  }
+
+  // ===== Event: kode saham (= nama saham di daftar) =====
+  // Selama komposisi IME, huruf tidak diubah ke kapital (dirapikan saat komposisi selesai)
+  var codeComposing = false;
+  el.code.addEventListener('compositionstart', function () { codeComposing = true; });
+  el.code.addEventListener('compositionend', function () { codeComposing = false; onCodeInput(); });
+  el.code.addEventListener('input', function (e) {
+    if (codeComposing || e.isComposing) return;
+    onCodeInput();
+  });
+  function onCodeInput() {
+    var start = el.code.selectionStart, end = el.code.selectionEnd;
+    var v = el.code.value.toUpperCase().slice(0, CODE_MAX);
+    if (v !== el.code.value) {
+      el.code.value = v;
+      try { el.code.setSelectionRange(start, end); } catch (e) { /* abaikan */ }
+    }
+    var code = v.trim(); // kode yang hanya berisi spasi = kode kosong
+    if (code === cur.code) return; // tidak ada perubahan (mis. dirapikan dua kali)
+    cur.code = code;
+    changed();
+  }
+
+  // ===== Event: tambah transaksi =====
+  el.form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (cur.txs.length >= MAX_TX) return;
+
+    var vp = validateBuyPrice(buyPrice.digits);
+    var vl = validateBuyLot(buyLot.digits);
+    setError(el.buyPrice, el.buyPriceErr, vp.error || '');
+    setError(el.buyLot, el.buyLotErr, vl.error || '');
+
+    if (vp.error || vl.error) {
+      (vp.error ? el.buyPrice : el.buyLot).focus();
+      return;
+    }
+
+    cur.txs.push({ price: vp.value, lot: vl.value });
+    buyPrice.set('');
+    buyLot.set('');
+    changed();
+    el.buyPrice.focus();
+  });
+
+  // ===== Event: hapus transaksi =====
+  el.txList.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-index]');
+    if (!btn) return;
+    var i = parseInt(btn.getAttribute('data-index'), 10); // nomor baris, bukan nilai uang
+    cur.txs.splice(i, 1);
+    if (cur.txs.length === 0) { // transaksi terakhir dihapus: kosongkan isian simulasi (BUG-V11-05)
+      cur.sellPrice = '';
+      cur.sellLot = '';
+      sellPrice.set('');
+      sellLot.set('');
+    }
+    changed();
+    var buttons = el.txList.querySelectorAll('button[data-index]');
+    if (buttons.length === 0) el.buyPrice.focus();
+    else buttons[Math.min(i, buttons.length - 1)].focus();
+  });
+
+  // ===== Event: saham baru / pindah saham =====
+  el.newStockBtn.addEventListener('click', function () {
+    if (!isEmptyStock(cur)) {
+      cur = blankStock();
+      clearBuyForm();
+      showCurrent();
+      save();
+      announce('Saham baru, masih kosong.');
+    }
+    el.code.focus();
+  });
+
+  el.stockList.addEventListener('click', function (e) {
+    var row = e.target.closest('.stock-row');
+    if (!row) return;
+    var target = findStock(row.getAttribute('data-id'));
+    if (!target || target === cur) return;
+    cur = target; // lembar kosong yang ditinggalkan dibuang dengan sendirinya
+    clearBuyForm();
+    showCurrent();
+    save();
+    announce(cur.code ? 'Membuka ' + cur.code + '.' : 'Membuka saham tanpa kode.');
+    focusStockRow(cur.id);
+  });
+
+  // ===== Dialog "Hapus saham ini" =====
+  function openDialog() {
+    el.delDesc.textContent = 'Hapus ' + (cur.code || 'saham ini') +
+      ' beserta semua transaksinya? Saham lain tidak ikut terhapus.';
+    el.overlay.hidden = false;
+    el.delCancel.focus();
+  }
+  function closeDialog() {
+    el.overlay.hidden = true;
+    if (!el.delBtn.disabled) el.delBtn.focus();
+  }
+  function deleteCurrent() {
+    var i = stocks.indexOf(cur);
+    if (i >= 0) stocks.splice(i, 1);
+    cur = blankStock();
+    clearBuyForm();
+    showCurrent();
+    save();
+    el.overlay.hidden = true;
+    announce('Saham dihapus.');
+    el.code.focus();
+  }
+
+  el.delBtn.addEventListener('click', openDialog);
+  el.delCancel.addEventListener('click', closeDialog);
+  el.delOk.addEventListener('click', deleteCurrent);
+  // Klik area gelap di luar kotak dialog = Batal
+  var downOnBackdrop = false;
+  el.overlay.addEventListener('mousedown', function (e) {
+    downOnBackdrop = e.target === el.overlay;
+    if (downOnBackdrop) e.preventDefault(); // fokus tidak pindah ke <body>
+  });
+  el.overlay.addEventListener('click', function (e) {
+    if (e.target === el.overlay && downOnBackdrop) closeDialog();
+    downOnBackdrop = false;
+  });
+  // Esc dan Tab ditangani di level dokumen selama dialog terbuka,
+  // jadi tetap bekerja walau fokus sempat lepas dari tombol dialog.
+  document.addEventListener('keydown', function (e) {
+    if (el.overlay.hidden) return;
+    if (e.key === 'Escape' || e.key === 'Esc') { e.preventDefault(); closeDialog(); return; }
+    if (e.key === 'Tab') {
+      // Hanya ada 2 tombol: Tab berpindah di antara keduanya saja
+      var first = el.delCancel, last = el.delOk, active = document.activeElement;
+      e.preventDefault();
+      if (e.shiftKey) (active === last ? first : last).focus();
+      else (active === first ? last : first).focus();
+    }
+  });
+
+  // ===== Mulai =====
+  load();
+  if (!cur) cur = blankStock();
+  renderSaveStatus();
+  showCurrent();
+})();
+</script>
+</body>
+</html>
